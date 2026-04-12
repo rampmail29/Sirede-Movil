@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "52761534933",
+    "project_id": "siredeapp-b037b",
+    "storage_bucket": "siredeapp-b037b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:52761534933:android:5ab22636c95aa48f3bdd5c",
+        "android_client_info": {
+          "package_name": "com.sirede.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "52761534933-ogba6il9juclbdi0un0t5cjgnku73qo1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzRhqWqd8eB4kAb__4Xk3awiV-6occb5E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "52761534933-ogba6il9juclbdi0un0t5cjgnku73qo1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,23 @@
+{
+  "cli": { "version": ">= 10.0.0" },
+  "build": {
+    "dev": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "dev",
+        "GOOGLE_WEB_CLIENT_ID": "52761534933-ogba6il9juclbdi0un0t5cjgnku73qo1.apps.googleusercontent.com",
+        "GOOGLE_IOS_CLIENT_ID": "52761534933-argr5pte9btidr1kch665m96180iplp2.apps.googleusercontent.com",
+        "GOOGLE_ANDROID_CLIENT_ID": ""
+      }
+    },
+    "prod": {
+      "env": {
+        "APP_ENV": "prod",
+        "GOOGLE_WEB_CLIENT_ID": "52761534933-ogba6il9juclbdi0un0t5cjgnku73qo1.apps.googleusercontent.com",
+        "GOOGLE_IOS_CLIENT_ID": "52761534933-argr5pte9btidr1kch665m96180iplp2.apps.googleusercontent.com",
+        "GOOGLE_ANDROID_CLIENT_ID": "MY_ANDROID_CLIENT_ID.apps.googleusercontent.com"
+      }
+    }
+  }
+}

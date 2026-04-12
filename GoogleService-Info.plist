@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>52761534933-argr5pte9btidr1kch665m96180iplp2.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.52761534933-argr5pte9btidr1kch665m96180iplp2</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA2ve7KNuljhoPb7eOz81ho042lRVxtV6Q</string>
+	<key>GCM_SENDER_ID</key>
+	<string>52761534933</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.sirede.app</string>
+	<key>PROJECT_ID</key>
+	<string>siredeapp-b037b</string>
+	<key>STORAGE_BUCKET</key>
+	<string>siredeapp-b037b.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:52761534933:ios:9503476f3fcc292a3bdd5c</string>
+</dict>
+</plist>
