@@ -24,7 +24,6 @@ const CargarCSV = () => {
   const [loadingVerification, setLoadingVerification] = useState(true);
 
     const handleSelection = (response) => {
-      console.log(showSelection)
       setShowSelection(response); // Cambiar el estado de mostrar/ocultar selección
       if (!response) {
         setSelectedCareers([]); // Limpiar las selecciones si elige "No"
@@ -37,9 +36,9 @@ const CargarCSV = () => {
                 const response = await fetch(`${API_BASE_URL}/api/programas`);
                 const data = await response.json();
                 const filteredData = data.map(element => ({
-                    cod_snies: element.codigo_programa,
-                    programa: element.nombre_programa,
-                    tipo: element.tipo_programa,
+                    cod_snies: element.codigo_snies,
+                    programa: element.nombre,
+                    tipo: element.tipos_programa?.nombre,
                     id: element.id_carrera
                 }));
                 setProgramas(filteredData); 
@@ -215,6 +214,19 @@ const CargarCSV = () => {
   const upload = async () => {
     if (csvData && csvData.length > 0) {
 
+      // Carga de matrícula (formato normal) no implementada en el backend actual
+      if (isNormalFormat) {
+        showMessage({
+          message: "Funcionalidad no disponible",
+          description: "La carga de archivos de matrícula no está disponible en este momento. Utilice el script SQL de carga masiva para importar datos de estudiantes.",
+          type: "warning",
+          icon: "warning",
+          position: "top",
+          duration: 6000,
+        });
+        return;
+      }
+
      // Mensaje de error si el formato del archivo no es válido
       if (!isNormalFormat && !isGraduadosFormat) {
         showMessage({
@@ -288,7 +300,6 @@ const CargarCSV = () => {
 
   const  checkboxChange = (value) => {
     setSelectedOption(value); // Actualizar estado de checkbox
-    console.log(selectedOption)
     setIsOptionSelected(true); // Cuando se seleccione una opción, cambia el estado para mostrar el mensaje
   };
 
@@ -297,20 +308,12 @@ const CargarCSV = () => {
   };
 
   const checkboxChange1 = (careerId) => {
-    console.log('Career clicked:', careerId);
     if (selectedCareers.includes(careerId)) {
-      // Si ya está seleccionada, la quitamos
-      const updatedCareers = selectedCareers.filter(id => id !== careerId);
-      console.log('Deselected:', updatedCareers)
       setSelectedCareers(selectedCareers.filter((id) => id !== careerId));
     } else {
-      // Si no está seleccionada, la agregamos
-      const updatedCareers = [...selectedCareers, careerId];
-      console.log('Selected:', updatedCareers);
       setSelectedCareers([...selectedCareers, careerId]);
     }
   };
-console.log('Aqui quedan almacenados los id relacionados:',selectedCareers)
 
   return (
     <ImageBackground source={require('../assets/fondoinicio.jpg')} style={styles.backgroundImage}>

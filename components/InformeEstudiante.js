@@ -12,7 +12,6 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { showMessage } from "react-native-flash-message";
 import { API_BASE_URL } from "./Config";
-console.log("🚀 ~ API_BASE_URL:", API_BASE_URL)
 
 const InformeEstudiante = () => {
   const [busqueda, setBusqueda] = useState("");
@@ -59,7 +58,7 @@ const InformeEstudiante = () => {
 
   const estudianteSeleccionado = (estudiante) => {
     navigation.navigate("StudentDetail", {
-      id: estudiante.id_estudiante,
+      id: estudiante.estudiantes[0]?.id_estudiante,
       fromScreen: "InformeEstudiante",
     });
   };
