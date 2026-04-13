@@ -108,7 +108,7 @@ const ProgramasAcademicos = ({ onProgramSelect }) => {
       onProgramSelect({
         cod_snies: programa.codigo_snies,
         programa: programa.nombre,
-        tipo: programa.tipos_programa.nombre,
+        tipo: programa.tipos_programa?.nombre,
         id: programa.id_carrera,
       });
     }
@@ -257,5 +257,4 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
-console.clear();
 export default ProgramasAcademicos;

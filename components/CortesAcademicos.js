@@ -19,11 +19,7 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
   const [selectedCorteInicial, setSelectedCorteInicial] = useState("");
   const [modalCorteInicialVisible, setModalCorteInicialVisible] =
     useState(false);
-  const [datosBackend, setDatosBackend] = useState({
-    graduados: [],
-    retenidos: [],
-    desertados: [],
-  });
+  const [datosBackend, setDatosBackend] = useState(null);
   const [loading, setLoading] = useState(false);
   //console.log(selectedProgram);
   // Obtener los cortes iniciales basados en el ID del programa
@@ -34,7 +30,7 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
       );
       const data = await response.json();
       //console.log("data", data);
-      Array.isArray(data) && setCortesIniciales(data); // Si es un array, actualiza cortesIniciales
+      Array.isArray(data) && setCortesIniciales(data.map(c => c.codigo_periodo));
     } catch (error) {
       showMessage({
         message: "Error",
@@ -75,11 +71,6 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
 
   // Lógica para calcular el corte tope (corte final) basado en el corte inicial y el tipo de programa
   useEffect(() => {
-    console.log(
-      "selectedCorteInicial en CortesAcademicos:",
-      selectedCorteInicial
-    );
-
     const cohorteTope = () => {
       if (
         !selectedCorteInicial ||
@@ -121,8 +112,8 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
 
       // Agregar cortes iniciales posteriores
       cortesIniciales.forEach((corte) => {
-        if (corte.key > selectedCorteInicial) {
-          cortesFinalesCalculados.push({ label: corte.key, key: corte.key });
+        if (corte > selectedCorteInicial) {
+          cortesFinalesCalculados.push({ label: corte, key: corte });
         }
       });
 
@@ -182,16 +173,16 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
         return;
       }
       const response = await fetch(
-        `${API_BASE_URL}/api/estudiantes-por-corte`,
+        `${API_BASE_URL}/api/estadisticasPdf`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            idCarrera: selectedProgram.id,
-            codigo_periodo: selectedCorteInicial,
-            
+            id_carrera: selectedProgram.id,
+            corteInicial: selectedCorteInicial,
+            corteFinal,
           }),
         }
       );
@@ -218,13 +209,8 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
   };
 
   useEffect(() => {
-    if (
-      datosBackend.graduados.length !== 0 ||
-      datosBackend.retenidos.length !== 0 ||
-      datosBackend.desertados.length !== 0
-    ) {
+    if (datosBackend?.todos?.length > 0) {
       const timeout = setTimeout(() => {}, 1000);
-
       return () => clearTimeout(timeout);
     }
   }, [datosBackend, onNext]);
@@ -263,10 +249,10 @@ const CortesAcademicos = ({ selectedProgram, onNext }) => {
                 <TouchableOpacity
                   key={index}
                   style={styles.modalItemContainer}
-                  onPress={() => corteInicialSelect(corte.codigo_periodo)}
+                  onPress={() => corteInicialSelect(corte)}
                 >
                   <Text style={styles.modalItemTextCorte}>
-                    {corte.codigo_periodo}
+                    {corte}
                   </Text>
                 </TouchableOpacity>
               ))}

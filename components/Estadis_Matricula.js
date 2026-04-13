@@ -47,7 +47,7 @@ const Estadisticas = () => {
         const filteredData = data.map((element) => ({
           cod_snies: element.codigo_snies,
           programa: element.nombre,
-          tipo: element.tipo_programa_id,
+          tipo: element.tipos_programa?.nombre,
           id: element.id_carrera,
         }));
         setProgramas(filteredData);
@@ -69,7 +69,6 @@ const Estadisticas = () => {
   }, []);
 
   const obtenerPeriodos = async (id_carrera) => {
-    console.log("Obteniendo periodos para id_carrera:", id_carrera);
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/periodos/${id_carrera}`
@@ -186,10 +185,9 @@ const Estadisticas = () => {
           }),
         }
       );
-      console.log("Response status:", response.status);
 
       const data = await response.json();
-      setDatosBackend(data);
+      setDatosBackend(data.resumenPorPeriodo);
       setLoading(true); // Mostrar el modal de carga
     } catch (error) {
       console.error("Error al obtener datos del backend:", error);

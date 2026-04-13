@@ -53,7 +53,7 @@ const Estadisticas = () => {
         const filteredData = data.map((element) => ({
           cod_snies: element.codigo_snies,
           programa: element.nombre,
-          tipo: element.tipo_programa_id,
+          tipo: element.tipos_programa?.nombre,
           id: element.id_carrera,
         }));
         //console.log(filteredData);
@@ -124,9 +124,9 @@ const Estadisticas = () => {
 
       // Agregar cortes iniciales posteriores al corte inicial
       cortesIniciales
-        .filter((c) => c > selectedCorteInicial)
+        .filter((c) => c.codigo_periodo > selectedCorteInicial.valor)
         .forEach((c) => {
-          cortesFinalesCalculados.push({ label: c, key: c });
+          cortesFinalesCalculados.push({ label: c.codigo_periodo, key: c.codigo_periodo });
         });
 
       // Tomar solo el último corte final
@@ -231,14 +231,7 @@ const ProgramaSelect = (programa) => {
   };
 
   useEffect(() => {
-    if (
-      datosBackend?.todosEstudiantes?.length > 0 ||
-      datosBackend?.graduados?.length > 0 ||
-      datosBackend?.retenidos?.length > 0 ||
-      datosBackend?.desertados?.length > 0 ||
-      datosBackend?.activos?.length > 0 ||
-      datosBackend?.inactivos?.length > 0
-    ) {
+    if ((datosBackend?.totalMatriculados ?? 0) > 0) {
       //console.log("Datos recibidos:", datosBackend);
       const timeout = setTimeout(() => {
         setLoading(false);
