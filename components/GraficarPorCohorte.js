@@ -45,7 +45,7 @@ const GraficarCohorte = ({ route }) => {
   const [isGraduadosOportunosCollapsed, setGraduadosOportunosCollapsed] = 
     useState(true);
   /* console.log(`SEPARADOR-----------------------------`)
-     console.log(`Corte Inicial: ${selectedCorteInicial.codigo_periodo}`)
+     console.log(`Corte Inicial: ${selectedCorteInicial.valor}`)
      console.log(`Corte Final: ${corteFinal}`) */
 
   // Referencias para animación
@@ -594,7 +594,7 @@ const GraficarCohorte = ({ route }) => {
       !hayActivos &&
       !hayInactivos
     ) {
-      return `En este grupo de estudiantes que empezo su formacion academica en el periodo ${selectedCorteInicial.codigo_periodo}, se destaca que ${graduados.length} estudiantes completaron su formación con éxito, Sin embargo, también se evidencia que ${desertados.length} han desertado y ${retenidos.length} permanecen retenidos. Podremos ver mas detalles de estos estudiantes a continuación:`;
+      return `En este grupo de estudiantes que empezo su formacion academica en el periodo ${selectedCorteInicial.valor}, se destaca que ${graduados.length} estudiantes completaron su formación con éxito, Sin embargo, también se evidencia que ${desertados.length} han desertado y ${retenidos.length} permanecen retenidos. Podremos ver mas detalles de estos estudiantes a continuación:`;
     }
 
     if (
@@ -709,12 +709,12 @@ const GraficarCohorte = ({ route }) => {
             carrera de
             <Text style={{ fontFamily: "Montserrat-Bold" }}>
               {" "}
-              {(programaSeleccionado)}{" "}
+              {programaSeleccionado.programa}{" "}
             </Text>
             durante el periodo
             <Text style={{ fontFamily: "Montserrat-Bold" }}>
               {" "}
-              {selectedCorteInicial.codigo_periodo}
+              {selectedCorteInicial.valor}
             </Text>
             . Aquí se muestra cómo han progresado a lo largo del tiempo.
           </Text>
