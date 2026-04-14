@@ -108,17 +108,15 @@ const Estadisticas = () => {
 
   const cohorteInicialSelect = (corteInicial) => {
     setSelectedCorteInicial(corteInicial);
-    //console.log("corteInicial->",corteInicial)
 
-    // Filtrar solo cortes posteriores estrictamente
+    // Incluir el mismo periodo como opción de corte final (rango de un solo periodo)
     const cortesFiltrados = cortesIniciales.filter(
-      (corte) => corte.codigo_periodo > corteInicial
+      (corte) => corte.codigo_periodo >= corteInicial
     );
-    //console.log("cortesFiltrados-> ",cortesFiltrados)
     setCortesFinales(cortesFiltrados);
 
-    // Si el corte final seleccionado es inválido, resetear
-    if (selectedCorteFinal && selectedCorteFinal <= corteInicial) {
+    // Si el corte final seleccionado es anterior al inicial, resetear
+    if (selectedCorteFinal && selectedCorteFinal < corteInicial) {
       setSelectedCorteFinal("");
     }
 
@@ -137,65 +135,87 @@ const Estadisticas = () => {
   };
 
   const evaluarClick = async () => {
-    try {
-      /* console.log(
-        "programa seleccionado ->",
-        programaSeleccionado,
-        " - selected corte inicial->",
-        selectedCorteInicial
-      ); */
-      if (!programaSeleccionado || !selectedCorteInicial) {
-        showMessage({
-          message: "Error",
-          description: "Por favor seleccione todos los datos necesarios",
-          duration: 3000,
-          titleStyle: { fontSize: 18, fontFamily: "Montserrat-Bold" }, // Estilo del título
-          textStyle: { fontSize: 16, fontFamily: "Montserrat-Regular" }, // Estilo del texto
-          type: "danger",
-          icon: "danger",
-          position: "top",
-        });
-        return;
-      }
-      if (selectedCorteFinal && selectedCorteFinal <= selectedCorteInicial) {
-        showMessage({
-          message: "Error",
-          description: "El periodo final debe ser mayor al periodo inicial.",
-          type: "danger",
-          icon: "danger",
-          duration: 3000,
-          titleStyle: { fontSize: 18, fontFamily: "Montserrat-Bold" },
-          textStyle: { fontSize: 16, fontFamily: "Montserrat-Regular" },
-          position: "top",
-        });
-        return;
-      }
+    if (!programaSeleccionado || !selectedCorteInicial) {
+      showMessage({
+        message: "Error",
+        description: "Por favor seleccione todos los datos necesarios",
+        duration: 3000,
+        titleStyle: { fontSize: 18, fontFamily: "Montserrat-Bold" },
+        textStyle: { fontSize: 16, fontFamily: "Montserrat-Regular" },
+        type: "danger",
+        icon: "danger",
+        position: "top",
+      });
+      return;
+    }
+    if (selectedCorteFinal && selectedCorteFinal < selectedCorteInicial) {
+      showMessage({
+        message: "Error",
+        description: "El periodo final debe ser igual o mayor al periodo inicial.",
+        type: "danger",
+        icon: "danger",
+        duration: 3000,
+        titleStyle: { fontSize: 18, fontFamily: "Montserrat-Bold" },
+        textStyle: { fontSize: 16, fontFamily: "Montserrat-Regular" },
+        position: "top",
+      });
+      return;
+    }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    setLoading(true);
+    try {
       const response = await fetch(
         `${API_BASE_URL}/api/estudiantes-por-matricula`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             idCarrera: idSeleccionado,
             periodoInicial: selectedCorteInicial,
-            periodoFinal: selectedCorteFinal,
+            periodoFinal: selectedCorteFinal || selectedCorteInicial,
           }),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
       const data = await response.json();
+
+      if (!data.resumenPorPeriodo || Object.keys(data.resumenPorPeriodo).length === 0) {
+        setLoading(false);
+        showMessage({
+          message: "Sin datos",
+          description: "No se encontraron registros para el rango seleccionado.",
+          type: "warning",
+          icon: "warning",
+          position: "top",
+          duration: 4000,
+        });
+        return;
+      }
+
       setDatosBackend(data.resumenPorPeriodo);
-      setLoading(true); // Mostrar el modal de carga
     } catch (error) {
-      console.error("Error al obtener datos del backend:", error);
+      clearTimeout(timeoutId);
+      setLoading(false);
+      const esTimeout = error.name === "AbortError";
+      showMessage({
+        message: esTimeout ? "Tiempo de espera agotado" : "Error de conexión",
+        description: esTimeout
+          ? "El servidor tardó demasiado en responder. Verifica tu conexión e inténtalo de nuevo."
+          : "No se pudo obtener los datos. Revisa tu conexión e inténtalo de nuevo.",
+        type: "danger",
+        icon: "danger",
+        position: "top",
+        duration: 5000,
+      });
     }
   };
 
   useEffect(() => {
-    // Verificar si `datosBackend` tiene alguna propiedad con datos
     const tieneDatos = datosBackend && Object.keys(datosBackend).length > 0;
 
     if (tieneDatos) {
@@ -204,7 +224,7 @@ const Estadisticas = () => {
         navigation.navigate("GraficarMatriculas", {
           fromScreen: "Estadis_Matricula",
           selectedCorteInicial,
-          selectedCorteFinal,
+          selectedCorteFinal: selectedCorteFinal || selectedCorteInicial,
           programaSeleccionado,
           idSeleccionado,
           datosBackend,
