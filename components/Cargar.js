@@ -1,486 +1,495 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Modal, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ImageBackground,
+  Modal,
+  ScrollView,
+} from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import Papa from 'papaparse';
-import { showMessage } from "react-native-flash-message";
-import { FontAwesome5 } from '@expo/vector-icons'; 
-import { CheckBox } from 'react-native-elements'; // Importar CheckBox desde react-native-elements
+import { showMessage } from 'react-native-flash-message';
+import { FontAwesome5 } from '@expo/vector-icons';
+import { CheckBox } from 'react-native-elements';
 import { API_BASE_URL } from './Config';
 
+const COLS_ESTUDIANTES = ['PEGE_DOCUMENTOIDENTIDAD', 'PROG_CODIGOICFES', 'PERIODO'];
+const COLS_GRADUADOS   = ['numero_documento', 'nombre_programa', 'fecha_graduacion'];
+
+const TIPO_OPTIONS = [
+  { label: 'Tecnología', value: 'Tecnologia' },
+  { label: 'Profesional', value: 'Profesional' },
+];
+
+const capitalizeFirstLetter = (str) =>
+  (str || '')
+    .toLowerCase()
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
 const CargarCSV = () => {
-  const [csvData, setCsvData] = useState(null);
-  const [fileName, setFileName] = useState('');
-  const [selectedOption, setSelectedOption] = useState(''); // Nuevo estado para checkbox
-  const [isModalVisible, setModalVisible] = useState(false);  
-  const [parsedProgram, setParsedProgram] = useState('');  // Programa obtenido del CSV
-  const [isGraduadosFormat, setIsGraduadosFormat] = useState(false); // Estado para el formato de graduados
-  const [isNormalFormat, setIsNormalFormat] = useState(false); // Estado para el formato normal
-  const [programas, setProgramas] = useState([]);
+  // ── Modo: null | 'estudiantes' | 'graduados' ─────────────────────────────────
+  const [modo, setModo] = useState(null);
+
+  // ── Estado de archivo (compartido) ───────────────────────────────────────────
+  const [csvData,        setCsvData]        = useState(null);
+  const [fileName,       setFileName]       = useState('');
+  const [isModalVisible, setModalVisible]   = useState(false);
+
+  // ── Estado exclusivo de modo Estudiantes ─────────────────────────────────────
+  const [programas,          setProgramas]          = useState([]);
   const [programasFiltrados, setProgramasFiltrados] = useState([]);
-  const [selectedCareers, setSelectedCareers] = useState([]); // Para almacenar IDs seleccionados
-  const [showSelection, setShowSelection] = useState(null); // Estado inicial como null
-  const [showwSelection, setShowwSelection] = useState(null); // Estado inicial como null
-  const [isOptionSelected, setIsOptionSelected] = useState(false); // Nuevo estado para controlar la visualización del mensaje
-  const [loadingVerification, setLoadingVerification] = useState(true);
+  const [parsedSnies,        setParsedSnies]        = useState('');
+  const [selectedOption,     setSelectedOption]     = useState('');
+  const [selectedCareers,    setSelectedCareers]    = useState([]);
+  const [showRelacion,       setShowRelacion]       = useState(null);
+  const [mostrarTipoSel,     setMostrarTipoSel]     = useState(false);
+  const [tipoConfirmado,     setTipoConfirmado]     = useState(false);
+  const [verificando,        setVerificando]        = useState(false);
 
-    const handleSelection = (response) => {
-      setShowSelection(response); // Cambiar el estado de mostrar/ocultar selección
-      if (!response) {
-        setSelectedCareers([]); // Limpiar las selecciones si elige "No"
-      }
-    };
-
-        useEffect(() => {
-          const obtenerProgramas = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/programas`);
-                const data = await response.json();
-                const filteredData = data.map(element => ({
-                    cod_snies: element.codigo_snies,
-                    programa: element.nombre,
-                    tipo: element.tipos_programa?.nombre,
-                    id: element.id_carrera
-                }));
-                setProgramas(filteredData); 
-
-
-              // Filtrar inmediatamente después de guardar
-              const programasFiltrados = filteredData.filter(
-                programa => programa.programa !== parsedProgram
-              );
-
-              setProgramasFiltrados(programasFiltrados)
-
-
-            } catch (error) {
-                  showMessage({
-                    message: "Error",
-                    description: "No se pudo conectar con la base de datos. Por favor, revisa tu conexión e inténtalo de nuevo.",
-                    type: "danger",
-                    icon: "danger",
-                    titleStyle: { fontSize: 18, fontFamily: 'Montserrat-Bold' }, // Estilo del título
-                    textStyle: { fontSize: 18, fontFamily: 'Montserrat-Regular' }, // Estilo del texto
-                    duration: 3000,
-                  });
-            }
-        };
-
-        if (isNormalFormat) {
-          obtenerProgramas(); // Obtener carreras solo si es formato normal
-        }
-      }, [isNormalFormat]);
-
-      useEffect(() => {
-        const verificarCarrera = () => {
-          const programaEncontrado = programas.find(programa => programa.programa === parsedProgram);
-      
-          if (programaEncontrado) {
-            // Si encontramos el programa, asignamos el tipo automáticamente
-            setSelectedOption(programaEncontrado.tipo); // Asignamos el tipo de programa (Tecnología/Profesional)
-            setShowwSelection(false); // No necesitamos mostrar la selección del tipo de programa
-          } else {
-            setShowwSelection(true); // Si no se encuentra, mostramos la opción de selección
-          }
-      
-          // Finalizamos la verificación
-          setLoadingVerification(false);
-        };
-      
-        if (parsedProgram) {
-          verificarCarrera(); // Verificamos el programa si ya tenemos el nombre del programa (parsedProgram)
-        } else {
-          // Si parsedProgram no está disponible, también finalizamos la verificación
-          setLoadingVerification(false);
-        }
-      }, [parsedProgram, programas]); // Dependemos de parsedProgram y programas para que se ejecute cuando cambien
-
-      useEffect(() => {
-        if (fileName) {
-          // Resetear estados al cargar un nuevo archivo CSV
-          setCsvData(null); // Limpia los datos del CSV
-          setSelectedOption(''); // Reinicia la opción seleccionada
-          setModalVisible(false); // Asegúrate de que el modal esté cerrado
-          setParsedProgram(''); // Reinicia el programa parseado
-          setIsGraduadosFormat(false); // Reinicia el estado del formato de graduados
-          setIsNormalFormat(false); // Reinicia el estado del formato normal
-          setProgramas([]); // Limpia la lista de programas
-          setProgramasFiltrados([]); // Limpia la lista de programas filtrados
-          setSelectedCareers([]); // Limpia las carreras seleccionadas
-          setShowSelection(null); // Reinicia el estado de selección
-          setShowwSelection(null); // Reinicia el estado de selección adicional
-          setIsOptionSelected(false); // Reinicia la selección de opción
-          setLoadingVerification(true); // Reinicia el estado de carga de verificación
-        }
-      }, [fileName]);
-      
-      
-
-  const options = [
-    { label: 'Tecnología', value: 'Tecnologia' },
-    { label: 'Profesional', value: 'Profesional' }
-  ];
-
-  const capitalizeFirstLetter = (string) => {
-    return string
-      .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+  // ── Reset ─────────────────────────────────────────────────────────────────────
+  const resetFile = () => {
+    setCsvData(null);
+    setFileName('');
+    setModalVisible(false);
+    setParsedSnies('');
+    setSelectedOption('');
+    setSelectedCareers([]);
+    setShowRelacion(null);
+    setMostrarTipoSel(false);
+    setTipoConfirmado(false);
+    setVerificando(false);
   };
 
+  const seleccionarModo = (nuevoModo) => {
+    resetFile();
+    setProgramas([]);
+    setProgramasFiltrados([]);
+    setModo(nuevoModo);
+  };
+
+  const volver = () => {
+    resetFile();
+    setProgramas([]);
+    setProgramasFiltrados([]);
+    setModo(null);
+  };
+
+  // ── Fetch programas (solo modo Estudiantes) ────────────────────────────────
+  useEffect(() => {
+    if (modo !== 'estudiantes') return;
+    const fetchProgramas = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/programas`);
+        const data = await response.json();
+        const mapped = data.map((el) => ({
+          cod_snies: String(el.codigo_snies),
+          programa:  el.nombre,
+          tipo:      el.tipos_programa?.nombre,
+          id:        el.id_carrera,
+        }));
+        setProgramas(mapped);
+      } catch {
+        showMessage({
+          message: 'Error',
+          description: 'No se pudo conectar con la base de datos.',
+          type: 'danger',
+          icon: 'danger',
+          duration: 3000,
+        });
+      }
+    };
+    fetchProgramas();
+  }, [modo]);
+
+  // ── Verificar programa por SNIES cuando carga el CSV ─────────────────────────
+  useEffect(() => {
+    if (modo !== 'estudiantes' || !parsedSnies || programas.length === 0) return;
+
+    const encontrado = programas.find((p) => p.cod_snies === parsedSnies);
+    if (encontrado) {
+      setSelectedOption(encontrado.tipo || '');
+      setMostrarTipoSel(false);
+      setProgramasFiltrados(programas.filter((p) => p.cod_snies !== parsedSnies));
+    } else {
+      setMostrarTipoSel(true);
+      setProgramasFiltrados(programas);
+    }
+    setVerificando(false);
+  }, [parsedSnies, programas]);
+
+  // ── Selector de archivo ────────────────────────────────────────────────────────
   const pickDocument = async () => {
     try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: 'text/csv',
-      });
+      const res = await DocumentPicker.getDocumentAsync({ type: 'text/csv' });
+      if (res.canceled) {
+        showMessage({
+          message: 'Advertencia',
+          description: 'Se canceló la selección del archivo.',
+          type: 'warning',
+          icon: 'warning',
+          position: 'top',
+          duration: 3000,
+        });
+        return;
+      }
 
-      if (!res.canceled) {
-        const fileUri = res.assets[0].uri;
-        const name = res.assets[0].name;
-        setFileName(name);
-        
-        const response = await fetch(fileUri);
-        const csvContent = await response.text();
-  
-        Papa.parse(csvContent, {
-          header: true,
-          complete: (results) => {
-            setCsvData(results.data);
-    
-              // Comprobar y actualizar los estados de formato aquí
-            const isGraduadosFormat = /^graduados_\d{4}-(1|2)\.csv$/.test(name);
-            const isNormalFormat = /^\d{4}-(1|2)\.csv$/.test(name);
+      const { uri, name } = res.assets[0];
+      const csvContent = await (await fetch(uri)).text();
 
-            // Asignar el campo del programa según el formato detectado
-            if (isGraduadosFormat) {
-              setIsGraduadosFormat(true);  // Actualiza el estado de formato
-              setIsNormalFormat(false);  // Actualiza el estado de formato
-              setParsedProgram(results.data[0]?.nombre_programa || '');  // Usar 'nombre_programa' para graduados
-            } else if (isNormalFormat) {
-              setIsNormalFormat(true);  // Actualiza el estado de formato
-              setIsGraduadosFormat(false);  // Actualiza el estado de formato
-              setParsedProgram(results.data[0]?.PROG_NOMBRE || '');  // Usar 'PROG_NOMBRE' para normal
-            } else {
-              setParsedProgram('');  // En caso de que no coincida con ninguno
-            }
+      Papa.parse(csvContent, {
+        header: true,
+        complete: (results) => {
+          const rows = results.data.filter((r) =>
+            Object.values(r).some((v) => String(v).trim() !== '')
+          );
 
-          },
-          error: (error) => {
+          if (rows.length === 0) {
             showMessage({
-              message: "Error",
-              description: "Error al cargar el CSV. Por favor, revisa tu conexión e inténtalo de nuevo.",
-              type: "danger",
-              icon: "danger",
-              position: "top",
+              message: 'Archivo vacío',
+              description: 'El archivo no contiene registros.',
+              type: 'danger',
+              icon: 'danger',
+              position: 'top',
               duration: 3000,
             });
-          },
+            return;
+          }
+
+          const columnas = Object.keys(rows[0]);
+          const requeridas = modo === 'estudiantes' ? COLS_ESTUDIANTES : COLS_GRADUADOS;
+          const faltantes = requeridas.filter((c) => !columnas.includes(c));
+
+          if (faltantes.length > 0) {
+            showMessage({
+              message: 'Formato incorrecto',
+              description: `Columnas faltantes: ${faltantes.join(', ')}`,
+              type: 'danger',
+              icon: 'danger',
+              position: 'top',
+              duration: 6000,
+            });
+            return;
+          }
+
+          // Reiniciar estado de archivo antes de asignar nuevo
+          resetFile();
+          setCsvData(rows);
+          setFileName(name);
+
+          if (modo === 'estudiantes') {
+            setVerificando(true);
+            setParsedSnies(String(rows[0]?.PROG_CODIGOICFES || ''));
+          }
+        },
+        error: () => {
+          showMessage({
+            message: 'Error',
+            description: 'Error al leer el archivo CSV.',
+            type: 'danger',
+            icon: 'danger',
+            position: 'top',
+            duration: 3000,
+          });
+        },
+      });
+    } catch {
+      showMessage({
+        message: 'Error',
+        description: 'Error al seleccionar el archivo.',
+        type: 'danger',
+        icon: 'danger',
+        position: 'top',
+        duration: 3000,
+      });
+    }
+  };
+
+  // ── Carga ──────────────────────────────────────────────────────────────────────
+  const upload = async () => {
+    setModalVisible(false);
+    if (!csvData || csvData.length === 0) return;
+
+    try {
+      const endpoint =
+        modo === 'estudiantes'
+          ? `${API_BASE_URL}/api/cargageneral`
+          : `${API_BASE_URL}/api/carga_graduados`;
+
+      const body =
+        modo === 'estudiantes'
+          ? JSON.stringify({ csvData, selectedOption, selectedCareers })
+          : JSON.stringify(csvData);
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        showMessage({
+          message: 'Carga exitosa',
+          description: `Se procesaron ${csvData.length} registros con éxito.`,
+          type: 'success',
+          icon: 'success',
+          position: 'top',
+          duration: 4000,
         });
+        resetFile();
       } else {
         showMessage({
-          message: "Advertencia",
-          description: "Se canceló la selección del archivo.",
-          type: "warning",
-          icon: "warning",
-          position: "top",
-          duration: 3000,
+          message: 'Error en la carga',
+          description: result.message || 'Hubo un error al procesar el archivo.',
+          type: 'danger',
+          icon: 'danger',
+          position: 'top',
+          duration: 5000,
         });
       }
-    } catch (err) {
+    } catch {
       showMessage({
-        message: "Error",
-        description: "Error al seleccionar el archivo.",
-        type: "danger",
-        icon: "danger",
-        position: "top",
+        message: 'Error en el servidor',
+        description: 'No se pudo enviar los datos al servidor.',
+        type: 'danger',
+        icon: 'danger',
+        position: 'top',
         duration: 3000,
       });
     }
   };
 
-    const toggleModal = () => {
-      setModalVisible(false);  // Cerrar modal al confirmar
-    };
-    const mostrarModal = () => {
-      setModalVisible(true);  // abrir modal al confirmar
-    };
+  const puedeCargar =
+    csvData &&
+    (modo === 'graduados' || (modo === 'estudiantes' && selectedOption));
 
-    const confirmUpload = async () => {
-      setModalVisible(false);  // Cerrar modal al confirmar
-      // Aquí llamamos a la función de upload
-      upload();
-    };
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render: pantalla de selección de modo
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (modo === null) {
+    return (
+      <ImageBackground
+        source={require('../assets/fondoinicio.jpg')}
+        style={styles.backgroundImage}
+      >
+        <ScrollView style={styles.container}>
+          <Text style={styles.title}>Carga de datos</Text>
+          <Text style={styles.subtitle}>
+            Seleccione el tipo de archivo que desea cargar:
+          </Text>
 
-  const upload = async () => {
-    if (csvData && csvData.length > 0) {
+          <TouchableOpacity
+            style={styles.modoButton}
+            onPress={() => seleccionarModo('estudiantes')}
+          >
+            <FontAwesome5 name="users" size={44} color="#132F20" />
+            <Text style={styles.modoButtonTitle}>Estudiantes</Text>
+            <Text style={styles.modoButtonDesc}>
+              Carga masiva de registros de matrícula
+            </Text>
+          </TouchableOpacity>
 
-      // Carga de matrícula (formato normal) no implementada en el backend actual
-      if (isNormalFormat) {
-        showMessage({
-          message: "Funcionalidad no disponible",
-          description: "La carga de archivos de matrícula no está disponible en este momento. Utilice el script SQL de carga masiva para importar datos de estudiantes.",
-          type: "warning",
-          icon: "warning",
-          position: "top",
-          duration: 6000,
-        });
-        return;
-      }
+          <TouchableOpacity
+            style={styles.modoButton}
+            onPress={() => seleccionarModo('graduados')}
+          >
+            <FontAwesome5 name="graduation-cap" size={44} color="#132F20" />
+            <Text style={styles.modoButtonTitle}>Graduados</Text>
+            <Text style={styles.modoButtonDesc}>
+              Registro de estudiantes que se graduaron
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </ImageBackground>
+    );
+  }
 
-     // Mensaje de error si el formato del archivo no es válido
-      if (!isNormalFormat && !isGraduadosFormat) {
-        showMessage({
-          message: "Error",
-          description: "El nombre del archivo debe seguir el formato 'año-período.csv' o 'graduados_año-período.csv'.",
-          type: "danger",
-          icon: "danger",
-          position: "top",
-          duration: 8000,
-        });
-        return;
-      }
-
-      let endpoint = isNormalFormat ? `${API_BASE_URL}/api/cargageneral` : `${API_BASE_URL}/api/cargagraduados`;
-
-
-        // Crear el objeto que vamos a enviar en el body
-        let dataToSend = isNormalFormat 
-        ? { csvData, selectedOption, selectedCareers } // Enviar ambos csvData y selectedOption si es formato normal
-        : csvData; // Solo enviar csvData si es formato de graduados
-
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dataToSend),
-        });
-        const result = await response.json();
-        if (result.success) {
-          showMessage({
-            message: "Carga exitosa",
-            description: `Se cargaron y/o actualizaron ${csvData.length - 1} registros con éxito.`,
-            type: "success",
-            icon: "success",
-            position: "top",
-            duration: 3000,
-          });
-        } else {
-          showMessage({
-            message: "Error en la carga",
-            description: "Hubo un error al cargar el archivo CSV.",
-            type: "danger",
-            icon: "danger",
-            position: "top",
-            duration: 3000,
-          });
-        }
-      } catch (error) {
-        showMessage({
-          message: "Error en el servidor",
-          description: "Error al enviar los datos al servidor.",
-          type: "danger",
-          icon: "danger",
-          position: "top",
-          duration: 3000,
-        });
-      }
-    } else {
-      showMessage({
-        message: "Archivo o tipo de programa no seleccionado",
-        description: "Primero debes seleccionar un archivo CSV y el tipo de programa antes de proceder con la carga.",
-        type: "danger",
-        icon: "danger",
-        position: "top",
-        duration: 3000,
-      });
-    }
-  };
-
-  const  checkboxChange = (value) => {
-    setSelectedOption(value); // Actualizar estado de checkbox
-    setIsOptionSelected(true); // Cuando se seleccione una opción, cambia el estado para mostrar el mensaje
-  };
-
-  const handleBackToOptions = () => {
-    setIsOptionSelected(false); // Vuelve a mostrar el selector
-  };
-
-  const checkboxChange1 = (careerId) => {
-    if (selectedCareers.includes(careerId)) {
-      setSelectedCareers(selectedCareers.filter((id) => id !== careerId));
-    } else {
-      setSelectedCareers([...selectedCareers, careerId]);
-    }
-  };
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render: flujo de carga
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <ImageBackground source={require('../assets/fondoinicio.jpg')} style={styles.backgroundImage}>
+    <ImageBackground
+      source={require('../assets/fondoinicio.jpg')}
+      style={styles.backgroundImage}
+    >
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>Carga de datos</Text>
-        <Text style={styles.subtitle}>Por favor, cargue el archivo CSV con los datos correctos y en el formato adecuado.</Text>
 
-        <TouchableOpacity style={styles.button} onPress={pickDocument}>
-              <FontAwesome5 name="cloud-upload-alt" size={55} color="#132F20" />
-              <Text style={styles.buttonText}>
-                {fileName ? 'Seleccionar otro archivo' : 'Seleccionar archivo'}
-              </Text>
-
-              {fileName && ( <View style={styles.separator} /> )}
-
-              {fileName && (       
-              <View style={styles.fileContainer}>   
-                <FontAwesome5 name="file-csv" size={24} color="#132F20" />
-                <Text style={styles.fileName}>{fileName}</Text>
-              </View>          
-            )}
+        {/* Botón volver */}
+        <TouchableOpacity style={styles.backButton} onPress={volver}>
+          <FontAwesome5 name="arrow-left" size={16} color="#132F20" />
+          <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
 
-       {/* Checkboxes usando react-native-elements */}
-       {fileName && isNormalFormat && !loadingVerification &&  showwSelection && (
-          <View style={styles.checkboxContainer}>
-          {!isOptionSelected ? (
-            <View >
-              <Text style={styles.subtitlecheck}>
-                Selecciona el tipo de programa al que pertenece la carrera.
-              </Text>
-              {options.map((option) => (
-                 <CheckBox
-                    key={option.value}
-                    title={option.label}   
-                    checkedColor="#C3D730"              
-                    checked={selectedOption === option.value} // Selecciona solo uno a la vez
-                    onPress={() => checkboxChange(option.value)}
-                    textStyle={{ 
-                      fontSize: 16,  // Tamaño de fuente
-                      color: '#132F20',  // Color de texto
-                      fontFamily: 'Montserrat-Bold',  // Tipo de letra
-                    }}
-                    containerStyle={{
-                      backgroundColor: 'transparent',  // Sin fondo
-                      margin: -5,
-                    }}
-                  />          ))}
-            </View>
-          ) : (
-            // Si se ha seleccionado una opción, muestra el mensaje y el botón de "Cambiar"
-            <View style={{ padding:5 }}>
-              <Text style={styles.subtitlecheck}>
-                El programa es de tipo {selectedOption === 'Profesional' ? 'Profesional.' : 'Tecnología.'}
-              </Text>
-              <TouchableOpacity
-                style={{alignItems: 'center', }}
-                onPress={handleBackToOptions}
-              >
-                <Text style={{ fontSize: 16, color: '#C3D730', fontFamily: 'Montserrat-Bold' }}>
-                  Cambiar
-                </Text>
-              </TouchableOpacity>
+        <Text style={styles.title}>
+          {modo === 'estudiantes' ? 'Cargar Estudiantes' : 'Cargar Graduados'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {modo === 'estudiantes'
+            ? 'Seleccione un archivo CSV con los datos de matrícula.'
+            : 'Seleccione un archivo CSV con los datos de graduados.'}
+        </Text>
+
+        {/* Selector de archivo */}
+        <TouchableOpacity style={styles.button} onPress={pickDocument}>
+          <FontAwesome5 name="cloud-upload-alt" size={55} color="#132F20" />
+          <Text style={styles.buttonText}>
+            {fileName ? 'Seleccionar otro archivo' : 'Seleccionar archivo'}
+          </Text>
+          {fileName && <View style={styles.separator} />}
+          {fileName && (
+            <View style={styles.fileContainer}>
+              <FontAwesome5 name="file-csv" size={24} color="#132F20" />
+              <Text style={styles.fileName}>{fileName}</Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
+
+        {/* ── Modo Estudiantes: selección de tipo de programa ─────────────────── */}
+        {modo === 'estudiantes' && fileName && !verificando && mostrarTipoSel && (
+          <View style={styles.checkboxContainer}>
+            {!tipoConfirmado ? (
+              <View>
+                <Text style={styles.subtitlecheck}>
+                  Selecciona el tipo de programa al que pertenece la carrera.
+                </Text>
+                {TIPO_OPTIONS.map((option) => (
+                  <CheckBox
+                    key={option.value}
+                    title={option.label}
+                    checkedColor="#C3D730"
+                    checked={selectedOption === option.value}
+                    onPress={() => {
+                      setSelectedOption(option.value);
+                      setTipoConfirmado(true);
+                    }}
+                    textStyle={{ fontSize: 16, color: '#132F20', fontFamily: 'Montserrat-Bold' }}
+                    containerStyle={{ backgroundColor: 'transparent', margin: -5 }}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={{ padding: 5 }}>
+                <Text style={styles.subtitlecheck}>
+                  El programa es de tipo{' '}
+                  {selectedOption === 'Profesional' ? 'Profesional.' : 'Tecnología.'}
+                </Text>
+                <TouchableOpacity
+                  style={{ alignItems: 'center' }}
+                  onPress={() => setTipoConfirmado(false)}
+                >
+                  <Text style={{ fontSize: 16, color: '#C3D730', fontFamily: 'Montserrat-Bold' }}>
+                    Cambiar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         )}
 
-
-
-      {/* Pregunta condicional y selección */}
-      {fileName && isNormalFormat && (showSelection === null || showSelection === true) && (
-        <View style={styles.scroll}>
-          {showSelection === null && (
-            <>
-             <View style={styles.checkboxContainer1}>
-                  <Text style={styles.subtitlecheck}>
-                    ¿Esta carrera tiene relación con otro programa académico?
-                  </Text>
-
-                  <View style={styles.buttonContainer}>
-                      <TouchableOpacity
-                        style={[styles.buttonSelection]}
-                        onPress={() => handleSelection(true)}
-                      >
-                        <View style={styles.buttonContainer} > 
-                          <FontAwesome5 name="check" size={24} color="#C3D730" />
-                          <Text style={styles.buttonText}>  Sí</Text>
-                        </View>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.buttonSelection]}
-                        onPress={() => handleSelection(false)}
-                      >
-                        <View style={styles.buttonContainer} > 
-                          <FontAwesome5 name="times" size={24} color="#6D100A" />
-                          <Text style={styles.buttonText}>  No</Text>
-                        </View>
-                      </TouchableOpacity>
-                  </View>
-              </View>
-            </>
-          )}
-
-          {showSelection && (
-            <View style={styles.checkboxContainer1}>
-             {programasFiltrados.length === 0 ? (
-                // Mostrar mensaje si no hay programas disponibles
+        {/* ── Modo Estudiantes: carreras relacionadas ──────────────────────────── */}
+        {modo === 'estudiantes' &&
+          fileName &&
+          (showRelacion === null || showRelacion === true) && (
+          <View style={styles.scroll}>
+            {showRelacion === null && (
+              <View style={styles.checkboxContainer1}>
                 <Text style={styles.subtitlecheck}>
-                  No hay carreras disponibles en este momento.
+                  ¿Esta carrera tiene relación con otro programa académico?
                 </Text>
-              ) : (
-                // Mostrar lista de carreras si hay programas disponibles
-                <>
-                  <Text style={styles.subtitlecheck}>
-                    Selecciona las carreras relacionadas.
-                  </Text>
-                  {programasFiltrados.map((career) => (
-                    <CheckBox
-                      key={career.id}
-                      title={capitalizeFirstLetter(career.programa)}
-                      checkedColor="#C3D730"
-                      checked={selectedCareers.includes(career.id)} // Verifica si la carrera está en el arreglo
-                      onPress={() => checkboxChange1(career.id)} // Llama a la función para agregar o quitar la carrera
-                      textStyle={{
-                        fontSize: 16,
-                        color: "#132F20",
-                        fontFamily: "Montserrat-Bold",
-                      }}
-                      containerStyle={{
-                        backgroundColor: "transparent",
-                        margin: -5,
-                      }}
-                    />
-                  ))}
-                </>
-              )}
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={styles.buttonSelection}
+                    onPress={() => setShowRelacion(true)}
+                  >
+                    <View style={styles.buttonContainer}>
+                      <FontAwesome5 name="check" size={24} color="#C3D730" />
+                      <Text style={styles.buttonText}>  Sí</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.buttonSelection}
+                    onPress={() => {
+                      setShowRelacion(false);
+                      setSelectedCareers([]);
+                    }}
+                  >
+                    <View style={styles.buttonContainer}>
+                      <FontAwesome5 name="times" size={24} color="#6D100A" />
+                      <Text style={styles.buttonText}>  No</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
+            {showRelacion && (
+              <View style={styles.checkboxContainer1}>
+                {programasFiltrados.length === 0 ? (
+                  <Text style={styles.subtitlecheck}>
+                    No hay carreras disponibles en este momento.
+                  </Text>
+                ) : (
+                  <>
+                    <Text style={styles.subtitlecheck}>
+                      Selecciona las carreras relacionadas.
+                    </Text>
+                    {programasFiltrados.map((career) => (
+                      <CheckBox
+                        key={career.id}
+                        title={capitalizeFirstLetter(career.programa)}
+                        checkedColor="#C3D730"
+                        checked={selectedCareers.includes(career.id)}
+                        onPress={() =>
+                          setSelectedCareers((prev) =>
+                            prev.includes(career.id)
+                              ? prev.filter((id) => id !== career.id)
+                              : [...prev, career.id]
+                          )
+                        }
+                        textStyle={{ fontSize: 16, color: '#132F20', fontFamily: 'Montserrat-Bold' }}
+                        containerStyle={{ backgroundColor: 'transparent', margin: -5 }}
+                      />
+                    ))}
+                  </>
+                )}
+              </View>
+            )}
           </View>
-          )}
-        </View>
-      )}
-              
-        {fileName && (selectedOption || isGraduadosFormat) && (
-          <TouchableOpacity style={styles.button1} onPress={mostrarModal}>
+        )}
+
+        {/* Botón cargar */}
+        {puedeCargar && (
+          <TouchableOpacity style={styles.button1} onPress={() => setModalVisible(true)}>
             <Text style={styles.buttonText1}>Cargar archivo</Text>
           </TouchableOpacity>
         )}
 
-
+        {/* Modal de confirmación */}
         <Modal
           animationType="slide"
           transparent={true}
           visible={isModalVisible}
-          onRequestClose={toggleModal} // Maneja el cierre desde el hardware
+          onRequestClose={() => setModalVisible(false)}
         >
           <View style={styles.modalContent}>
-          <FontAwesome5 name="exclamation-circle" size={100} color="#6D100A" />
+            <FontAwesome5 name="exclamation-circle" size={100} color="#6D100A" />
             <Text style={styles.modalText}>
-              {isGraduadosFormat
-                ? `Estás subiendo un archivo de graduados del programa ${capitalizeFirstLetter(parsedProgram)}.`
-                : `Estás a punto de cargar un archivo de matrícula del programa ${capitalizeFirstLetter(parsedProgram)} de tipo ${selectedOption}.`}
+              {modo === 'graduados'
+                ? `Estás a punto de cargar ${csvData?.length ?? 0} registros de graduados.`
+                : `Estás a punto de cargar un archivo de matrícula de tipo ${selectedOption}.`}
             </Text>
-            <TouchableOpacity style={styles.button1} onPress={confirmUpload}>
+            <TouchableOpacity style={styles.button1} onPress={upload}>
               <Text style={styles.buttonText1}>Confirmar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.buttonCancel} onPress={toggleModal}>
+            <TouchableOpacity
+              style={styles.buttonCancel}
+              onPress={() => setModalVisible(false)}
+            >
               <Text style={styles.buttonTextCancel}>Cancelar</Text>
             </TouchableOpacity>
           </View>
@@ -489,6 +498,7 @@ const CargarCSV = () => {
     </ImageBackground>
   );
 };
+
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
@@ -515,10 +525,50 @@ const styles = StyleSheet.create({
   subtitlecheck: {
     fontSize: 16,
     fontFamily: 'Montserrat-Medium',
-    textAlign:'center',
-    marginBottom:10,
+    textAlign: 'center',
+    marginBottom: 10,
     color: '#132F20',
   },
+  // ── Tarjetas de selección de modo ──────────────────────────────────────────
+  modoButton: {
+    backgroundColor: '#F0FFF2',
+    padding: 24,
+    marginBottom: 20,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+    borderRadius: 20,
+  },
+  modoButtonTitle: {
+    fontSize: 24,
+    fontFamily: 'Montserrat-Bold',
+    color: '#132F20',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  modoButtonDesc: {
+    fontSize: 15,
+    fontFamily: 'Montserrat-Medium',
+    color: '#575756',
+    textAlign: 'center',
+  },
+  // ── Botón volver ────────────────────────────────────────────────────────────
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontFamily: 'Montserrat-Bold',
+    color: '#132F20',
+    marginLeft: 8,
+  },
+  // ── Picker ──────────────────────────────────────────────────────────────────
   button: {
     backgroundColor: '#F0FFF2',
     padding: 18,
@@ -526,40 +576,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 10,
     borderRadius: 20,
-    justifyContent: "center"
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#132F20',
     fontSize: 17,
-    textAlign: "center",
-    fontFamily: 'Montserrat-Bold',
-  },
-  button1: {
-    backgroundColor: 'white',
-    padding: 5,
-    marginBottom: 50,
-    width: '60%',
-    marginTop: 15,
-    alignItems: 'center', 
-    alignSelf: 'center', 
-    borderRadius: 10,
-    borderWidth: 3,
-    borderColor: '#132F20',
-    justifyContent: "center",
-  },
-  
-  buttonText1: {
-    color: '#132F20',
-    fontSize: 20,
-    textAlign: "center",
+    textAlign: 'center',
     fontFamily: 'Montserrat-Bold',
   },
   fileContainer: {
@@ -569,7 +596,7 @@ const styles = StyleSheet.create({
   fileName: {
     marginLeft: 10,
     fontSize: 20,
-    fontFamily: 'Montserrat-Medium'
+    fontFamily: 'Montserrat-Medium',
   },
   separator: {
     height: 2,
@@ -577,41 +604,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#C3D730',
     marginVertical: 10,
   },
+  // ── Cargar ──────────────────────────────────────────────────────────────────
+  button1: {
+    backgroundColor: 'white',
+    padding: 5,
+    marginBottom: 50,
+    width: '60%',
+    marginTop: 15,
+    alignItems: 'center',
+    alignSelf: 'center',
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: '#132F20',
+    justifyContent: 'center',
+  },
+  buttonText1: {
+    color: '#132F20',
+    fontSize: 20,
+    textAlign: 'center',
+    fontFamily: 'Montserrat-Bold',
+  },
+  // ── Checkboxes ──────────────────────────────────────────────────────────────
   checkboxContainer: {
     width: '100%',
-    padding:15,
-    backgroundColor:'white', 
-    borderRadius:30,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 30,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 10,
+    marginBottom: 8,
   },
-  scroll:{
-    padding:10,
+  scroll: {
+    padding: 10,
   },
   checkboxContainer1: {
     width: '100%',
-    padding:15,
-    backgroundColor:'white', 
-    borderRadius:30,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 30,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 10,
-    marginTop:10,
-    maxHeight: 'auto', // Limitar el alto de la lista de carreras
+    marginTop: 10,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  buttonSelection: {
+    padding: 10,
+    borderRadius: 5,
+    width: '49%',
+    alignItems: 'center',
+  },
+  // ── Modal ────────────────────────────────────────────────────────────────────
   modalContent: {
-    flex:1,
+    flex: 1,
     backgroundColor: 'white',
     padding: 22,
     justifyContent: 'center',
@@ -624,42 +677,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Medium',
     color: '#132F20',
     marginBottom: 10,
-    marginTop:10,
-    textAlign:'center'
+    marginTop: 10,
+    textAlign: 'center',
   },
   buttonCancel: {
     backgroundColor: '#6D100A',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
-    position: 'absolute',  // Lo posicionamos de forma absoluta
-    bottom: 30,  // Se asegura de que esté al final del modal
-    alignSelf: 'center',  // Centra el botón horizontalmente
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
   },
   buttonTextCancel: {
     color: 'white',
     fontFamily: 'Montserrat-Bold',
   },
-  relatedCareersContainer: {
-    maxHeight: 'auto', // Limitar el alto de la lista de carreras
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#C3D730',
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    backgroundColor: '#f9f9f9',
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  buttonSelection: {
-    padding: 10,
-    borderRadius: 5,
-    width: "49%",
-    alignItems: "center",  
-  },
 });
-
 
 export default CargarCSV;
