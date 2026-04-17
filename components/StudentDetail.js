@@ -207,7 +207,7 @@ const StudentDetail = ({ route, navigation }) => {
       try {
         if (!student) return;
 
-        const numeroDocumento = safeText(student.numero_documento);
+        const numeroDocumento = safeText(student.detalle_estudiante?.numero_documento);
 
         if (!numeroDocumento || numeroDocumento === "No disponible") return;
 
@@ -266,7 +266,7 @@ const StudentDetail = ({ route, navigation }) => {
 
   const uploadImage = async (uri) => {
     try {
-      const numeroDocumento = safeText(student?.numero_documento);
+      const numeroDocumento = safeText(student?.detalle_estudiante?.numero_documento);
 
       const response = await fetch(uri);
       const blob = await response.blob();
@@ -296,13 +296,15 @@ const StudentDetail = ({ route, navigation }) => {
     );
   }
 
-  if (!student) {
+  if (!student || !student.detalle_estudiante) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Estudiante no encontrado</Text>
       </View>
     );
   }
+
+  const det = student.detalle_estudiante;
 
   const carrerasOrdenadas = ordenarCarrerasPorFecha(
     student.estudiantes_carreras || [],
@@ -363,7 +365,7 @@ const StudentDetail = ({ route, navigation }) => {
                 size={35}
                 color="#34531F"
                 label="Nombre:"
-                value={capitalLetter(safeText(student.nombre_completo))}
+                value={capitalLetter(safeText(det.nombre_completo))}
               />
 
               <InfoItem
@@ -371,7 +373,7 @@ const StudentDetail = ({ route, navigation }) => {
                 size={23}
                 color="#34531F"
                 label="Documento:"
-                value={safeText(student.numero_documento)}
+                value={`${det.tipo_documento?.nombre ?? ''} ${safeText(det.numero_documento)}`}
               />
 
               <InfoItem
@@ -379,7 +381,7 @@ const StudentDetail = ({ route, navigation }) => {
                 size={25}
                 color="#34531F"
                 label="Fecha de Nacimiento:"
-                value={safeDate(student.fecha_nacimiento)}
+                value={safeDate(det.fecha_nacimiento)}
               />
 
               <InfoItem
@@ -387,7 +389,7 @@ const StudentDetail = ({ route, navigation }) => {
                 size={35}
                 color="#34531F"
                 label="Edad:"
-                value={calcularEdad(student.fecha_nacimiento)}
+                value={calcularEdad(det.fecha_nacimiento)}
               />
 
               <InfoItem
@@ -395,7 +397,7 @@ const StudentDetail = ({ route, navigation }) => {
                 size={25}
                 color="#34531F"
                 label="Correo:"
-                value={safeText(student.correo_electronico)}
+                value={safeText(det.correo_electronico)}
               />
 
               <InfoItem
@@ -403,7 +405,7 @@ const StudentDetail = ({ route, navigation }) => {
                 size={30}
                 color="#34531F"
                 label="Celular:"
-                value={safeText(student.celular)}
+                value={safeText(det.celular)}
               />
             </View>
 
