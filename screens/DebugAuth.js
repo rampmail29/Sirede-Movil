@@ -11,7 +11,7 @@ export default function DebugAuth() {
         onPress={async () => {
           try {
             const res = await signInAnonymously(auth);
-            console.log("Anon UID:", res.user.uid);
+            //console.log("Anon UID:", res.user.uid);
           } catch (e) {
             console.log("Auth error:", e);
           }

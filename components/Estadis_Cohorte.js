@@ -184,10 +184,6 @@ const ProgramaSelect = (programa) => {
 
   const evaluarClick = async () => {
     try {
-      /* Hasta aquí OK --> console.log("Evaluar click con:", {
-        programaSeleccionado,
-        selectedCorteInicial
-      }); */
       if (!programaSeleccionado || !selectedCorteInicial) {
         showMessage({
           message: "Error",

@@ -47,7 +47,6 @@ const InicioSesion = ({ navigation }) => {
   const { request, promptAsync } = useGoogleLogin();
 
   const iniciarSesion = async () => {
-    //console.log("ingresé a iniciarSesión");
     setMostrarCargando(true);
     try {
       const { user } = await signInEmail(email, password);
